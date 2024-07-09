@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Générateur de Blagues</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f0f0f0;
+    }
+    .jokes {
+        max-width: 600px;
+        margin: 20px auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .joke {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        text-align: left;
+    }
+    .loading {
+        text-align: center;
+        margin-top: 20px;
+    }
+</style>
+</head>
+<body>
+    <h1 style="text-align: center;">Générateur de Blagues</h1>
+    <div class="jokes" id="jokesContainer"></div>
+    <div class="loading" id="loading">Chargement...</div>
+
+    <script>
+        let isLoading = false;
+
+        function fetchJokes() {
+            if (isLoading) return;
+            isLoading = true;
+            document.getElementById('loading').style.display = 'block';
+
+            fetch('https://v2.jokeapi.dev/joke/Any?lang=fr&type=twopart&amount=10')
+                .then(response => response.json())
+                .then(data => {
+                    const jokesContainer = document.getElementById('jokesContainer');
+                    document.getElementById('loading').style.display = 'none';
+
+                    data.jokes.forEach(joke => {
+                        const jokeElement = document.createElement('div');
+                        jokeElement.className = 'joke';
+                        jokeElement.innerHTML = `<p>${joke.setup}</p><p><strong>${joke.delivery}</strong></p>`;
+                        jokesContainer.appendChild(jokeElement);
+                    });
+
+                    isLoading = false;
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la récupération des blagues :', error);
+                    document.getElementById('loading').style.display = 'none';
+                    isLoading = false;
+                });
+        }
+
+        // Fonction pour détecter le bas de la page et charger plus de blagues
+        window.addEventListener('scroll', () => {
+            const { scrollTop, clientHeight, scrollHeight } = document.documentElement;
+            if (scrollTop + clientHeight >= scrollHeight - 5 && !isLoading) {
+                fetchJokes();
+            }
+        });
+
+        // Chargement initial des blagues
+        document.addEventListener('DOMContentLoaded', fetchJokes);
+    </script>
+</body>
+</html>
