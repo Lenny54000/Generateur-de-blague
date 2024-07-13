@@ -28,6 +28,7 @@
     .loading {
         text-align: center;
         margin-top: 20px;
+        display: none;
     }
 </style>
 </head>
@@ -38,43 +39,53 @@
 
     <script>
         let isLoading = false;
+        const jokesSet = new Set();
+        const MAX_ATTEMPTS = 100;
 
-        function fetchJokes() {
+        async function fetchJokes() {
             if (isLoading) return;
             isLoading = true;
             document.getElementById('loading').style.display = 'block';
 
-            fetch('https://v2.jokeapi.dev/joke/Any?lang=fr&type=twopart&amount=10')
-                .then(response => response.json())
-                .then(data => {
-                    const jokesContainer = document.getElementById('jokesContainer');
-                    document.getElementById('loading').style.display = 'none';
-
-                    data.jokes.forEach(joke => {
-                        const jokeElement = document.createElement('div');
-                        jokeElement.className = 'joke';
-                        jokeElement.innerHTML = `<p>${joke.setup}</p><p><strong>${joke.delivery}</strong></p>`;
-                        jokesContainer.appendChild(jokeElement);
-                    });
-
-                    isLoading = false;
-                })
-                .catch(error => {
+            let attempts = 0;
+            while (attempts < MAX_ATTEMPTS) {
+                attempts++;
+                try {
+                    const response = await fetch('https://v2.jokeapi.dev/joke/Any?lang=fr&type=twopart&amount=10');
+                    const data = await response.json();
+                    if (response.ok && data.jokes) {
+                        let newJokesAdded = false;
+                        data.jokes.forEach(joke => {
+                            const jokeKey = `${joke.setup}-${joke.delivery}`;
+                            if (!jokesSet.has(jokeKey)) {
+                                jokesSet.add(jokeKey);
+                                const jokeElement = document.createElement('div');
+                                jokeElement.className = 'joke';
+                                jokeElement.innerHTML = `<p>${joke.setup}</p><p><strong>${joke.delivery}</strong></p>`;
+                                document.getElementById('jokesContainer').appendChild(jokeElement);
+                                newJokesAdded = true;
+                            }
+                        });
+                        if (newJokesAdded) break;
+                    }
+                } catch (error) {
                     console.error('Erreur lors de la récupération des blagues :', error);
-                    document.getElementById('loading').style.display = 'none';
-                    isLoading = false;
-                });
+                }
+            }
+
+            document.getElementById('loading').style.display = 'none';
+            isLoading = false;
         }
 
-        // Fonction pour détecter le bas de la page et charger plus de blagues
-        window.addEventListener('scroll', () => {
+        function checkScroll() {
             const { scrollTop, clientHeight, scrollHeight } = document.documentElement;
             if (scrollTop + clientHeight >= scrollHeight - 5 && !isLoading) {
                 fetchJokes();
             }
-        });
+        }
 
-        // Chargement initial des blagues
+        window.addEventListener('scroll', checkScroll);
+
         document.addEventListener('DOMContentLoaded', fetchJokes);
     </script>
 </body>
